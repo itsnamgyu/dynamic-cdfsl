@@ -1,0 +1,15 @@
+pandas
+jupyter
+tensorboard
+seaborn
+scipy
+scikit-learn
+
+pytorch-lightning==1.1.5
+hydra-core
+loguru
+colorama
+timm
+opencv-python
+
+torchmetrics

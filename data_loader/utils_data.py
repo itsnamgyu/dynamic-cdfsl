@@ -1,3 +1,4 @@
+import json
 from collections import defaultdict
 from typing import List, Optional
 import torch
@@ -34,6 +35,10 @@ dataset_no_split = [
     "ChestX",
     "EuroSAT",
     "CropDisease",  # Exception: crop-disease
+    "cars",
+    "cub",
+    "places",
+    "plantae",
     "miniImageNettest",
     "tieredImageNettest"
 ]
@@ -214,7 +219,27 @@ class SimpleDataset(torch.utils.data.Dataset):
         self.indices = list(chain.from_iterable(self.class_indices.values()))
 
 
+def _output_index_path_map(dataset_name, data):
+    # Uses to adapt path-based split files
+    if 'ISIC' in dataset_name or 'Chest' in dataset_name:
+        iterable = zip(data.image_name, data.labels)
+    else:
+        iterable = data.samples  # path, target
+
+    os.makedirs(TMP_PATH, exist_ok=True)
+    map_path = os.path.join(TMP_PATH, dataset_name + "_index_path_map.json")
+    map_dict = dict()
+    for i, (path, label) in enumerate(iterable):
+        map_dict[i] = path
+
+    print('Saving index path mapping to: {}'.format(map_path))
+    with open(map_path, "w") as f:
+        json.dump(map_dict, f)
+
+
 def map_ind_to_label(dataset_name, data):
+    _output_index_path_map(dataset_name, data)
+
     tmpfile = os.path.join(TMP_PATH, dataset_name + f"_indices.npy")
     if not os.path.exists(tmpfile):
         sub_meta_indices = _get_ind_to_label(data, dataset_name)
@@ -268,8 +293,9 @@ def prepare_data_indices(dataset_name, data_path, split_type, opt=None):
 
     if not os.path.exists(indfile):
         data, *_ = get_image_folder(dataset_name, data_path, split_type)
-        map_ind_to_label(base_dataset_name, data)
+        map_ind_to_label(base_dataset_name, data)  # creates index file
     if data_indices_suffix:
+        # Create split index file
         tmpfile = os.path.join(
             TMP_PATH, base_dataset_name +
             f"_indices{data_indices_suffix}_{mode}_{opt.split_fraction}" +
@@ -285,6 +311,7 @@ def prepare_data_indices(dataset_name, data_path, split_type, opt=None):
                                                seed=opt.split_seed)
 
             elif "sup" in data_indices_suffix or "unsup" in data_indices_suffix or "partial" in data_indices_suffix:
+                # Create split index file (splits used for default training)
                 helper.create_partial_data(data_dict,
                                            base_dataset_name,
                                            fraction=opt.split_fraction,

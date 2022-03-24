@@ -67,57 +67,58 @@ class miniImageNettest(miniImageNet):
         super().__init__(data_root, mode='test')
 
 
-class tieredImageNet(Dataset):
-    def __init__(self, data_root, mode='train'):
-        super().__init__()
-        partition = mode
-        self.data_root = data_root
-        self.partition = partition
-
-        self.image_file_pattern = '%s_images.npz'
-        self.label_file_pattern = '%s_labels.pkl'
-
-        # modified code to load tieredImageNet
-        image_file = os.path.join(self.data_root,
-                                  self.image_file_pattern % partition)
-        self.imgs = np.load(image_file)['images']
-        label_file = os.path.join(self.data_root,
-                                  self.label_file_pattern % partition)
-        self.labels = self._load_labels(label_file)['labels']
-
-    def __getitem__(self, item):
-        img = Image.fromarray(np.asarray(self.imgs[item]).astype('uint8'))
-        target = self.labels[item] - min(self.labels)
-        return img, target
-
-    def __len__(self):
-        return len(self.labels)
-
-    @staticmethod
-    def _load_labels(file):
-        try:
-            with open(file, 'rb') as fo:
-                data = pickle.load(fo)
-            return data
-        except:
-            with open(file, 'rb') as f:
-                u = pickle._Unpickler(f)
-                u.encoding = 'latin1'
-                data = u.load()
-            return data
-
-
-class tieredImageNettest(tieredImageNet):
-    def __init__(self, data_root, mode='train'):
-        super().__init__(data_root, mode='test')
+# Original
+# class tieredImageNet(Dataset):
+#     def __init__(self, data_root, mode='train'):
+#         super().__init__()
+#         partition = mode
+#         self.data_root = data_root
+#         self.partition = partition
+#
+#         self.image_file_pattern = '%s_images.npz'
+#         self.label_file_pattern = '%s_labels.pkl'
+#
+#         # modified code to load tieredImageNet
+#         image_file = os.path.join(self.data_root,
+#                                   self.image_file_pattern % partition)
+#         self.imgs = np.load(image_file)['images']
+#         label_file = os.path.join(self.data_root,
+#                                   self.label_file_pattern % partition)
+#         self.labels = self._load_labels(label_file)['labels']
+#
+#     def __getitem__(self, item):
+#         img = Image.fromarray(np.asarray(self.imgs[item]).astype('uint8'))
+#         target = self.labels[item] - min(self.labels)
+#         return img, target
+#
+#     def __len__(self):
+#         return len(self.labels)
+#
+#     @staticmethod
+#     def _load_labels(file):
+#         try:
+#             with open(file, 'rb') as fo:
+#                 data = pickle.load(fo)
+#             return data
+#         except:
+#             with open(file, 'rb') as f:
+#                 u = pickle._Unpickler(f)
+#                 u.encoding = 'latin1'
+#                 data = u.load()
+#             return data
+#
+#
+# class tieredImageNettest(tieredImageNet):
+#     def __init__(self, data_root, mode='train'):
+#         super().__init__(data_root, mode='test')
 
 
 ChestX_path = os.path.expanduser("data/cdfsl/chest_xray")
 
 
 class ChestX(Dataset):
-    def __init__(self, data_root, mode='train', csv_path=ChestX_path+"/Data_Entry_2017.csv", \
-        image_path = ChestX_path+"/images_resized/"):
+    def __init__(self, data_root, mode='train', csv_path=ChestX_path+"/Data_Entry_2017.csv",
+                 image_path = ChestX_path+"/"):
         """
         Args:
             csv_path (string): path to csv file
@@ -187,8 +188,8 @@ ISIC_path = os.path.expanduser("data/cdfsl/ISIC")
 
 
 class ISIC(Dataset):
-    def __init__(self,data_root, mode='train', csv_path= ISIC_path + "/ISIC2018_Task3_Training_GroundTruth/ISIC2018_Task3_Training_GroundTruth.csv", \
-        image_path =  ISIC_path + "/ISIC2018_Input_Resized/"):
+    def __init__(self,data_root, mode='train', csv_path= ISIC_path + "/ISIC2018_Task3_Training_GroundTruth.csv",
+                 image_path=ISIC_path):
         """
         Args:
             csv_path (string): path to csv file
@@ -213,7 +214,7 @@ class ISIC(Dataset):
         # Get image name from the pandas df
         single_image_name = self.image_name[index]
         img_as_img = default_loader(
-            os.path.join(self.img_path, single_image_name + ".JPG"))
+            os.path.join(self.img_path, single_image_name + ".jpg"))
 
         single_image_label = self.labels[index]
         return (img_as_img, single_image_label)
@@ -234,44 +235,45 @@ class CropDisease(datasets.ImageFolder):
         super().__init__(path)
 
 
-class CUB(Dataset):
-    def __init__(self, data_root: str, mode='train'):
-        super().__init__()
-        self.samples = self._make_dataset(data_root, mode)
-
-    def __len__(self) -> int:
-        return len(self.samples)
-
-    def __getitem__(self, index: int):
-        imfile, label = self.samples[index]
-        image = default_loader(imfile)
-        label = np.long(label)
-        return image, label
-
-    def _make_dataset(self, data_root, mode):
-        img_root = os.path.join(data_root, 'images')
-
-        def fn_read(path):
-            _list = []
-            with open(path, 'r') as fp:
-                for line in fp:
-                    line = line.strip()
-                    if len(line) > 0:
-                        lab = int(line.split('.')[0]) - 1
-                        imname = os.path.join(img_root, line)
-                        assert os.path.exists(imname)
-                        _list.append((imname, lab))
-            return _list
-
-        instances = []
-        if mode == 'train':
-            instances = fn_read(os.path.join(data_root, 'train.txt'))
-        elif mode == 'test':
-            instances = fn_read(os.path.join(data_root, 'test.txt'))
-        else:
-            instances = fn_read(os.path.join(data_root, 'train.txt'))
-            instances.extend(fn_read(os.path.join(data_root, 'test.txt')))
-        return instances
+# Original
+# class CUB(Dataset):
+#     def __init__(self, data_root: str, mode='train'):
+#         super().__init__()
+#         self.samples = self._make_dataset(data_root, mode)
+#
+#     def __len__(self) -> int:
+#         return len(self.samples)
+#
+#     def __getitem__(self, index: int):
+#         imfile, label = self.samples[index]
+#         image = default_loader(imfile)
+#         label = np.long(label)
+#         return image, label
+#
+#     def _make_dataset(self, data_root, mode):
+#         img_root = os.path.join(data_root, 'images')
+#
+#         def fn_read(path):
+#             _list = []
+#             with open(path, 'r') as fp:
+#                 for line in fp:
+#                     line = line.strip()
+#                     if len(line) > 0:
+#                         lab = int(line.split('.')[0]) - 1
+#                         imname = os.path.join(img_root, line)
+#                         assert os.path.exists(imname)
+#                         _list.append((imname, lab))
+#             return _list
+#
+#         instances = []
+#         if mode == 'train':
+#             instances = fn_read(os.path.join(data_root, 'train.txt'))
+#         elif mode == 'test':
+#             instances = fn_read(os.path.join(data_root, 'test.txt'))
+#         else:
+#             instances = fn_read(os.path.join(data_root, 'train.txt'))
+#             instances.extend(fn_read(os.path.join(data_root, 'test.txt')))
+#         return instances
 
 
 class ConcatProportionDataset(torch.utils.data.Dataset):

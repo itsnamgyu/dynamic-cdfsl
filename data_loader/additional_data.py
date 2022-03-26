@@ -113,7 +113,7 @@ class miniImageNettest(miniImageNet):
 #         super().__init__(data_root, mode='test')
 
 
-ChestX_path = os.path.expanduser("data/cdfsl/chest_xray")
+ChestX_path = os.path.expanduser("data/cdfsl/chestX")
 
 
 class ChestX(Dataset):
